@@ -36,3 +36,7 @@ build/
 
 ### variaveis de ambiente###
 .env
+
+### JMeter ###
+performance/jmeter/results/*
+!performance/jmeter/results/.gitkeep

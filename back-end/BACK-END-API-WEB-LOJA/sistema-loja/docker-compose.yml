@@ -29,5 +29,15 @@ services:
       postgres-db:
         condition: service_healthy
 
+  jmeter:
+    image: ${JMETER_IMAGE:-justb4/jmeter:5.6.3}
+    profiles:
+      - performance
+    volumes:
+      - ./performance/jmeter:/jmeter
+    depends_on:
+      - spring-app
+    entrypoint: ["jmeter"]
+
 volumes:
   pgdata:
