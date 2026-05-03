@@ -406,6 +406,33 @@ Para apagar os resultados, remova os arquivos `.jtl` e as pastas de relatorio cr
 performance/jmeter/results/
 ```
 
+## Solucao de Problemas
+
+Erro durante o build Docker:
+
+```text
+Failed to execute goal org.apache.maven.plugins:maven-resources-plugin:3.3.1:resources
+MalformedInputException: Input length = 1
+```
+
+Esse erro acontece quando algum arquivo em `src/main/resources` esta salvo com encoding diferente de UTF-8 e o Maven tenta processar os resources dentro do container.
+
+Neste projeto, os arquivos `.properties` foram deixados em UTF-8 seguro e sem caracteres especiais nos comentarios:
+
+```text
+src/main/resources/application.properties
+src/test/resources/application.properties
+```
+
+O `pom.xml` tambem declara:
+
+```xml
+<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+```
+
+Se o erro voltar depois de editar algum `.properties`, salve o arquivo novamente como UTF-8 e evite comentarios com encoding misturado.
+
 ## Observacoes
 
 - O JMeter nao foi adicionado como dependencia Maven, porque ele nao faz parte da aplicacao.
