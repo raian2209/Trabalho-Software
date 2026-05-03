@@ -58,8 +58,10 @@ JWT_SECRET_KEY=suaChaveSecretaSuperLongaComPeloMenos256BitsParaHS256
 JWT_EXPIRATION=86400000
 APP_PORT=8080
 
-JMETER_IMAGE=justb4/jmeter:5.6.3
+JMETER_IMAGE=justb4/jmeter:5.5
 ```
+
+Se voce alterar `POSTGRES_USER`, `POSTGRES_PASSWORD` ou `POSTGRES_DB` depois que o volume `pgdata` ja foi criado, o container do Postgres nao reaplica esses valores automaticamente. Nessa situacao, ajuste o banco existente manualmente ou recrie o volume com `docker compose down -v`.
 
 Dentro do Docker, a aplicacao acessa o banco por:
 
@@ -132,6 +134,8 @@ Esse usuario e usado pelo plano JMeter para autenticar e executar chamadas admin
 ## JMeter via Docker CLI
 
 O JMeter roda sem interface grafica usando o modo `-n`.
+
+O projeto usa por padrao a imagem `justb4/jmeter:5.5`, porque a tag `justb4/jmeter:5.6.3` nao esta publicada no Docker Hub e causa erro de `manifest unknown`.
 
 Antes de executar os testes, suba a aplicacao:
 
