@@ -6,6 +6,7 @@ import { useState } from "react";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { User, Lock, LogIn, Loader2 } from "lucide-react";
+import { getSession, signIn } from "next-auth/react";
 
 type OnSubmitData = {
   email: string;
@@ -23,11 +24,45 @@ export default function LoginPage() {
 
   async function onSubmit(data: OnSubmitData) {
     setLoading(true);
-    console.log(data.email);
-    console.log(data.password);
+    const result = await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    });
     setLoading(false);
 
-    toast.error("Não implementado");
+    if (result?.error) {
+      toast.error("usuario ou senha incorretos");
+      return;
+    }
+
+    const session = await getSession();
+
+    if (!session || !session.user) {
+      toast.error("Erro ao carregar sessão");
+      return;
+    }
+
+    const { role } = session.user;
+
+    switch (role) {
+      case "ROLE_ADMIN":
+        toast.success("Bem-vindo administrador!");
+        router.push("/admin");
+        break;
+      case "ROLE_FORNECEDOR":
+        toast.success("Bem-vindo fornecedor!");
+        router.push("/fornecedor");
+        break;
+      case "ROLE_USUARIO":
+        toast.success("Bem-vindo usuário!");
+        router.push("/usuario");
+        break;
+      default:
+        toast.error("Role desconhecida");
+        break;
+    }
+
     router.refresh();
   }
 

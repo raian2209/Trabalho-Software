@@ -13,15 +13,11 @@ import {
   Store,
   ShoppingBag,
 } from "lucide-react";
-
-type OnSubmitData = {
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-};
+import { useRouter } from "next/navigation";
+import { registerAction, RegisterData } from "@/actions/register";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   // Configuração do formulário
@@ -30,7 +26,7 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<OnSubmitData>({
+  } = useForm<RegisterData>({
     defaultValues: {
       role: "ROLE_USUARIO", // Valor padrão (Cliente)
     },
@@ -43,15 +39,18 @@ export default function RegisterPage() {
     defaultValue: "ROLE_USUARIO",
   });
 
-  async function onSubmit(data: OnSubmitData) {
+  async function onSubmit(data: RegisterData) {
     setLoading(true);
-    console.log(data.name);
-    console.log(data.email);
-    console.log(data.password);
-    console.log(data.role);
+    const result = await registerAction(data);
     setLoading(false);
 
-    toast.error("Não implementado");
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Conta criada com sucesso");
+    router.push("/login");
   }
 
   return (

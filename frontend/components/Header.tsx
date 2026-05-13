@@ -17,16 +17,24 @@ import {
   Ticket, // Ícone para cupons
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { signOut, useSession } from "next-auth/react";
 
 export default function Header() {
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isLoading = false;
-  const isAuthenticated = true;
-  const userRole: string = "ROLE_ADMIN";
+  const isLoading = status === "loading";
+  const isAuthenticated = status === "authenticated";
+  const userRole = session?.user.role;
 
-  const userName = "Visitante";
+  const userName = session?.user.email?.split("@")[0] || "Visitante";
+
+  const handleLogout = async () => {
+    await signOut({
+      callbackUrl: "/login",
+    });
+  };
 
   const isActive = (path: string) => pathname === path;
 
@@ -168,7 +176,10 @@ export default function Header() {
                   <span className="text-sm font-medium ">Olá, {userName}</span>
                 </div>
 
-                <button className="p-2 text-gray-400 hover:text-red-400 hover:bg-white/5 rounded-full transition-all">
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-gray-400 hover:text-red-400 hover:bg-white/5 rounded-full transition-all"
+                >
                   <LogOut className="w-5 h-5" />
                 </button>
               </div>
@@ -176,13 +187,13 @@ export default function Header() {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                  className="text-sm font-medium text-gray-700 hover:text-black dark:text-gray-300 dark:hover:text-white transition-colors"
                 >
                   Entrar
                 </Link>
                 <Link
                   href="/register"
-                  className="px-5 py-2.5 text-sm font-bold text-white bg-brand-purple rounded-lg hover:bg-purple-700 transition-all shadow-lg shadow-purple-900/20"
+                  className="px-5 py-2.5 text-sm font-bold text-black dark:text-white bg-brand-purple rounded-lg hover:bg-purple-300 dark:hover:bg-purple-700 transition-all shadow-lg shadow-purple-100/20 dark:shadow-purple-900/20"
                 >
                   Criar Conta
                 </Link>
@@ -229,7 +240,10 @@ export default function Header() {
             </div>
 
             {isAuthenticated ? (
-              <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-red-400 bg-red-400/10 hover:bg-red-400/20 rounded-lg transition-colors font-medium">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-red-400 bg-red-400/10 hover:bg-red-400/20 rounded-lg transition-colors font-medium"
+              >
                 <LogOut className="w-5 h-5" /> <span>Sair da Conta</span>
               </button>
             ) : (
