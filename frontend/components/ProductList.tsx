@@ -1,0 +1,175 @@
+"use client";
+
+import Link from "next/link";
+import { Search, Package, Edit, Trash2, ShoppingCart } from "lucide-react";
+import { Product } from "@/types/types";
+import Image from "next/image";
+
+type ProductListProps = {
+  produtos: Product[];
+  loading: boolean;
+  isFornecedor: boolean;
+  onDelete?: (id: string) => Promise<void>;
+  onAddToCart?: (product: Product) => void;
+  searchTerm: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+};
+
+export default function ProductList({
+  produtos,
+  loading,
+  isFornecedor,
+  onDelete = async () => {},
+  onAddToCart = async () => {},
+  searchTerm,
+  setSearchTerm,
+}: ProductListProps) {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
+    }).format(value);
+  };
+
+  const filteredProdutos = produtos.filter(
+    (produto) =>
+      !produto.deleted &&
+      produto.nome?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  if (loading) {
+    return (
+      <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+        Carregando produtos...
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Barra de Busca */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+          {isFornecedor ? "Gerenciar Catálogo" : "Produtos Disponíveis"}
+        </h1>
+        <div className="relative w-full md:w-96">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          </div>
+          <input
+            type="text"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-brand-purple focus:border-brand-purple dark:bg-slate-900 dark:border-slate-700 dark:text-white dark:placeholder-gray-500"
+            placeholder="Buscar por nome..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Grid de Produtos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {filteredProdutos.length > 0 ? (
+          filteredProdutos.map((produto) => (
+            <div
+              key={produto.id}
+              className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm hover:shadow-lg transition-all flex flex-col group overflow-hidden"
+            >
+              <div className="relative h-48 bg-gray-100 dark:bg-slate-700">
+                <Image
+                  src={
+                    produto.imagem ||
+                    "https://placehold.co/300x300/F0F0F0/CCC?text=Sem+Imagem"
+                  }
+                  alt={produto.nome}
+                  fill
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src =
+                      "https://placehold.co/300x300?text=Erro";
+                  }}
+                />
+                {isFornecedor && (
+                  <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-900/90 dark:text-white px-2 py-1 rounded text-xs font-semibold shadow-sm">
+                    ID: {produto.id}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 flex flex-col grow">
+                <span className="text-xs font-semibold text-brand-purple bg-purple-50 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full w-fit mb-2">
+                  {produto.categoria || "Geral"}
+                </span>
+                <h3
+                  className="text-sm font-medium text-gray-800 dark:text-gray-100 line-clamp-2 mb-2"
+                  title={produto.nome}
+                >
+                  {produto.nome}
+                </h3>
+                <div className="mt-auto mb-4">
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(produto.preco || produto.precoNovo)}
+                  </div>
+                  {isFornecedor && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Estoque:{" "}
+                      <span
+                        className={
+                          produto.estoque > 0
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        }
+                      >
+                        {produto.estoque} un.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-gray-100 dark:border-slate-700">
+                  {isFornecedor ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/fornecedor/produtos/${produto.id}/editar`}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50 transition-colors"
+                      >
+                        <Edit className="w-4 h-4" /> Editar
+                      </Link>
+                      <button
+                        onClick={() => onDelete(produto.id)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" /> Excluir
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => onAddToCart(produto)}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium dark:text-white bg-brand-purple rounded-md hover:bg-opacity-90 transition-colors"
+                    >
+                      <ShoppingCart className="w-4 h-4" /> Adicionar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="col-span-full py-16 text-center border border-dashed border-gray-300 dark:border-slate-700 rounded-lg">
+            <Package className="w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-gray-500 dark:text-slate-400">
+              Nenhum produto encontrado.
+            </p>
+            {isFornecedor && (
+              <Link
+                href="/fornecedor/produtos/novo"
+                className="mt-4 inline-block px-4 py-2 bg-brand-purple text-white rounded-md hover:bg-purple-700 transition-colors"
+              >
+                Cadastrar Produto
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
