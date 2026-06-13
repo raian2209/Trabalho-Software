@@ -128,6 +128,14 @@ export default function LoginPage() {
                 {errors.password.message}
               </p>
             )}
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-brand-purple dark:text-purple-400 hover:underline"
+              >
+                Esqueceu a senha?
+              </Link>
+            </div>
           </div>
 
           <button
