@@ -28,6 +28,9 @@ public class ProdutoService {
         produto.setNome(requestDTO.getNome());
         produto.setDescricao(requestDTO.getDescricao());
         produto.setPreco(requestDTO.getPreco());
+        produto.setEstoque(requestDTO.getEstoque());
+        produto.setCategoria(requestDTO.getCategoria());
+        produto.setImagem(requestDTO.getImagem());
         produto.setFornecedor(fornecedor); // Associa o produto ao fornecedor logado
 
         Produto savedProduto = produtoRepository.save(produto);
@@ -61,6 +64,9 @@ public class ProdutoService {
         produto.setNome(requestDTO.getNome());
         produto.setDescricao(requestDTO.getDescricao());
         produto.setPreco(requestDTO.getPreco());
+        produto.setEstoque(requestDTO.getEstoque());
+        produto.setCategoria(requestDTO.getCategoria());
+        produto.setImagem(requestDTO.getImagem());
 
         Produto updatedProduto = produtoRepository.save(produto);
         return mapToResponseDTO(updatedProduto);
@@ -94,6 +100,9 @@ public class ProdutoService {
         dto.setNome(produto.getNome());
         dto.setDescricao(produto.getDescricao());
         dto.setPreco(produto.getPreco());
+        dto.setEstoque(produto.getEstoque());
+        dto.setCategoria(produto.getCategoria());
+        dto.setImagem(produto.getImagem());
         dto.setDeleted(produto.isDeleted());
 
         ProdutoResponseDTO.FornecedorDTO fornecedorDTO = new ProdutoResponseDTO.FornecedorDTO();

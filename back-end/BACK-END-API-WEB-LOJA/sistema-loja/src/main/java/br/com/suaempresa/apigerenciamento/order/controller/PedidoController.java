@@ -1,5 +1,6 @@
 package br.com.suaempresa.apigerenciamento.order.controller;
 
+import br.com.suaempresa.apigerenciamento.order.dto.AtualizarStatusDTO;
 import br.com.suaempresa.apigerenciamento.order.dto.PedidoRequestDTO;
 import br.com.suaempresa.apigerenciamento.order.dto.PedidoResponseDTO;
 import br.com.suaempresa.apigerenciamento.order.dto.VendaFornecedorDTO;
@@ -73,5 +74,17 @@ public class PedidoController {
         List<VendaFornecedorDTO> vendas = pedidoService.listarVendasDoFornecedor(currentUser);
         return ResponseEntity.ok(vendas);
     }
-    // com a devida lógica de autorização (usuário vê os seus, admin vê todos).
+
+    // FORNECEDOR atualiza o status de um pedido que contém produto(s) seu(s).
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('FORNECEDOR')")
+    public ResponseEntity<PedidoResponseDTO> atualizarStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody AtualizarStatusDTO dto,
+            @AuthenticationPrincipal User currentUser) {
+
+        PedidoResponseDTO atualizado =
+                pedidoService.atualizarStatusVenda(id, dto.getStatus(), currentUser);
+        return ResponseEntity.ok(atualizado);
+    }
 }

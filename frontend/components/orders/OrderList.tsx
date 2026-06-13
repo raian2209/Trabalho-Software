@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import { ShoppingBag, Filter, Search, Package } from "lucide-react";
-import { Order } from "@/types/types";
+import { Order, OrderStatus } from "@/types/types";
 import { FILTRO_STATUS_PEDIDO } from "@/lib/constants";
 import { Card } from "@/components/ui/Card";
 import { NormalizedOrder, OrderRow } from "./OrderRow";
@@ -14,6 +14,7 @@ type OrderListProps = {
   isFornecedor?: boolean;
   emptyStateAction?: ReactNode;
   onCancel?: (id: string) => void;
+  onStatusChange?: (id: string, status: OrderStatus) => void;
 };
 
 function normalize(p: Order, isFornecedor: boolean): NormalizedOrder {
@@ -44,6 +45,7 @@ export function OrderList({
   isFornecedor = false,
   emptyStateAction = null,
   onCancel,
+  onStatusChange,
 }: OrderListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -174,6 +176,7 @@ export function OrderList({
                   item={item}
                   isFornecedor={isFornecedor}
                   onCancel={onCancel}
+                  onStatusChange={onStatusChange}
                 />
               ))}
             </div>

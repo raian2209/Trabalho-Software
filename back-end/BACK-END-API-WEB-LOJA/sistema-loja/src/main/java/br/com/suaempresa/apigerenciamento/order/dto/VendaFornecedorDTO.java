@@ -13,7 +13,7 @@ public class VendaFornecedorDTO {
     private String nomeProduto;
     private Integer quantidade;
     private Double valorUnitario;
-    private StatusPedido statusPedido;
+    private StatusPedido status;
     private String clienteNome;
     private Double subtotal;
 }

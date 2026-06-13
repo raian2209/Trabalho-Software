@@ -1,4 +1,4 @@
-import { Order } from "@/types/types";
+import { Order, OrderStatus } from "@/types/types";
 import { apiFetch } from "./client";
 
 export type PedidoPayload = {
@@ -21,4 +21,12 @@ export const pedidosApi = {
   /** Cancela um pedido (a API usa POST em /api/pedidos/:id). */
   cancel: (id: string, token: string) =>
     apiFetch<void>(`/api/pedidos/${id}`, { method: "POST", token }),
+
+  /** Fornecedor atualiza o status de uma venda. */
+  updateStatus: (id: string, status: OrderStatus, token: string) =>
+    apiFetch<Order>(`/api/pedidos/${id}/status`, {
+      method: "PATCH",
+      body: { status },
+      token,
+    }),
 };

@@ -18,6 +18,16 @@ export const FILTRO_STATUS_PEDIDO = [
   { value: "cancelado", label: "Cancelado" },
 ] as const;
 
+/** Status que o fornecedor pode atribuir a uma venda (devem existir no enum do backend). */
+export const STATUS_FORNECEDOR_OPCOES: OrderStatus[] = [
+  "PROCESSANDO",
+  "APROVADO",
+  "ENVIADO",
+  "ENTREGUE",
+  "CONCLUIDO",
+  "CANCELADO",
+];
+
 /** Rótulo amigável por role. */
 export const ROLE_LABELS: Record<Role, string> = {
   ROLE_ADMIN: "Administrador",

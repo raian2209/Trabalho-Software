@@ -3,7 +3,7 @@
 import { Calendar, DollarSign, Package, User, XCircle, Ban } from "lucide-react";
 import { OrderStatus } from "@/types/types";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { isPedidoCancelavel } from "@/lib/constants";
+import { isPedidoCancelavel, STATUS_FORNECEDOR_OPCOES } from "@/lib/constants";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export type NormalizedOrder = {
@@ -19,9 +19,15 @@ type OrderRowProps = {
   item: NormalizedOrder;
   isFornecedor: boolean;
   onCancel?: (id: string) => void;
+  onStatusChange?: (id: string, status: OrderStatus) => void;
 };
 
-export function OrderRow({ item, isFornecedor, onCancel }: OrderRowProps) {
+export function OrderRow({
+  item,
+  isFornecedor,
+  onCancel,
+  onStatusChange,
+}: OrderRowProps) {
   const cancelavel = isPedidoCancelavel(item.status);
 
   return (
@@ -90,7 +96,21 @@ export function OrderRow({ item, isFornecedor, onCancel }: OrderRowProps) {
 
       {/* Ações */}
       <div className="w-full md:w-auto md:col-span-2 flex justify-center mt-2 md:mt-0">
-        {onCancel && cancelavel ? (
+        {isFornecedor && onStatusChange ? (
+          <select
+            value={item.status}
+            onChange={(e) =>
+              onStatusChange(item.id, e.target.value as OrderStatus)
+            }
+            className="w-full md:w-auto text-xs font-medium px-2 py-1.5 border border-gray-300 rounded-md bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-purple dark:bg-slate-900 dark:border-slate-700 dark:text-gray-100"
+          >
+            {STATUS_FORNECEDOR_OPCOES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        ) : onCancel && cancelavel ? (
           <button
             onClick={() => onCancel(item.id)}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-all w-full md:w-auto justify-center dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50 dark:hover:bg-red-900/50"

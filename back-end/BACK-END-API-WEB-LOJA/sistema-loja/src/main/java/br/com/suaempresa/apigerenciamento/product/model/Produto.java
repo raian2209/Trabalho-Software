@@ -4,6 +4,7 @@ import br.com.suaempresa.apigerenciamento.user.model.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
@@ -26,6 +27,17 @@ public class Produto {
 
     @Column(nullable = false)
     private Double preco;
+
+    // Quantidade disponível em estoque. ColumnDefault garante que a coluna seja
+    // adicionada com DEFAULT 0 em bancos já existentes (ddl-auto=update).
+    @Column(nullable = false)
+    @ColumnDefault("0")
+    private Integer estoque = 0;
+
+    private String categoria;
+
+    @Column(columnDefinition = "TEXT")
+    private String imagem;
 
     // Relacionamento: Muitos produtos pertencem a um Fornecedor (User)
     @ManyToOne(fetch = FetchType.LAZY) // LAZY para melhor performance

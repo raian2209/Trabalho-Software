@@ -56,6 +56,15 @@ public class PedidoService {
             Produto produto = produtoRepository.findById(itemDTO.getProdutoId())
                     .orElseThrow(() -> new ProdutoNotFoundException("Produto não encontrado com ID: " + itemDTO.getProdutoId()));
 
+            // Valida e baixa o estoque (a entidade é gerenciada, o flush persiste a alteração).
+            int estoqueAtual = produto.getEstoque() != null ? produto.getEstoque() : 0;
+            if (estoqueAtual < itemDTO.getQuantidade()) {
+                throw new InvalidZeroOrNegativeException(
+                        "Estoque insuficiente para o produto '" + produto.getNome()
+                                + "'. Disponível: " + estoqueAtual);
+            }
+            produto.setEstoque(estoqueAtual - itemDTO.getQuantidade());
+
             ItemPedido itemPedido = new ItemPedido();
             itemPedido.setPedido(pedido);
             itemPedido.setProduto(produto);
@@ -77,7 +86,6 @@ public class PedidoService {
             Cupom cupom = validarEObterCupom(requestDTO.getCodigoCupom());
             totalPedido = aplicarDesconto(totalPedido, cupom);
             pedido.setCupom(cupom);
-            System.out.println(totalPedido);
         }
 
         if (totalPedido.compareTo(BigDecimal.ZERO) <= 0) {
@@ -126,10 +134,11 @@ public class PedidoService {
     }
 
     public PedidoResponseDTO findOrderById(Long id, User cliente) {
-        Pedido pedido = pedidoRepository.findById(id).orElseThrow(() -> new CupomNotFoundException("Pedido não encontrado com ID: " + id));
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new PedidoNotFoundException("Pedido não encontrado com ID: " + id));
 
-        if (!pedido.getCliente().equals(cliente)) {
-            throw new AccessDeniedException("Acesso negado. Você não é o proprietário deste produto.");
+        if (!pedido.getCliente().getId().equals(cliente.getId())) {
+            throw new AccessDeniedException("Acesso negado. Você não é o proprietário deste pedido.");
         }
 
         return mapToResponseDTO(pedido);
@@ -151,7 +160,7 @@ public class PedidoService {
             dto.setNomeProduto(item.getProduto().getNome());
             dto.setQuantidade(item.getQuantidade());
             dto.setValorUnitario(item.getPrecoUnitario());
-            dto.setStatusPedido(pedido.getStatus());
+            dto.setStatus(pedido.getStatus());
             dto.setClienteNome(pedido.getCliente().getNome());
 
             double subtotalItem = item.getPrecoUnitario() * item.getQuantidade();
@@ -198,15 +207,55 @@ public class PedidoService {
     }
 
 
+    @Transactional
     public PedidoResponseDTO cancelOrder(Long id, User currentUser) {
-        Pedido pedido = pedidoRepository.findById(id).orElseThrow(() -> new CupomNotFoundException("Pedido não encontrado com ID: " + id));
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new PedidoNotFoundException("Pedido não encontrado com ID: " + id));
 
         if (!pedido.getCliente().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("Acesso negado. Você não é o proprietário deste produto.");
+            throw new AccessDeniedException("Acesso negado. Você não é o proprietário deste pedido.");
         }
 
-        pedido.setStatus(StatusPedido.CANCELADO);
+        // Devolve ao estoque o que foi reservado, evitando devolução dupla.
+        if (pedido.getStatus() != StatusPedido.CANCELADO) {
+            restaurarEstoque(pedido);
+            pedido.setStatus(StatusPedido.CANCELADO);
+            pedidoRepository.save(pedido);
+        }
+        return mapToResponseDTO(pedido);
+    }
+
+    /**
+     * Permite que um FORNECEDOR atualize o status de um pedido que contém pelo
+     * menos um produto seu (ex.: marcar como ENVIADO/ENTREGUE).
+     */
+    @Transactional
+    public PedidoResponseDTO atualizarStatusVenda(Long pedidoId, StatusPedido novoStatus, User fornecedor) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new PedidoNotFoundException("Pedido não encontrado com ID: " + pedidoId));
+
+        boolean ehFornecedorDoPedido = pedido.getItens().stream()
+                .anyMatch(item -> item.getProduto().getFornecedor().getId().equals(fornecedor.getId()));
+
+        if (!ehFornecedorDoPedido) {
+            throw new AccessDeniedException("Acesso negado. Este pedido não contém produtos seus.");
+        }
+
+        // Cancelar via fornecedor também devolve o estoque (uma única vez).
+        if (novoStatus == StatusPedido.CANCELADO && pedido.getStatus() != StatusPedido.CANCELADO) {
+            restaurarEstoque(pedido);
+        }
+
+        pedido.setStatus(novoStatus);
         pedidoRepository.save(pedido);
         return mapToResponseDTO(pedido);
+    }
+
+    private void restaurarEstoque(Pedido pedido) {
+        for (ItemPedido item : pedido.getItens()) {
+            Produto produto = item.getProduto();
+            int estoqueAtual = produto.getEstoque() != null ? produto.getEstoque() : 0;
+            produto.setEstoque(estoqueAtual + item.getQuantidade());
+        }
     }
 }
