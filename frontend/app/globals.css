@@ -5,11 +5,19 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Tokens do design system (centralizados) */
+  --brand-purple: #7c3aed;
+  --page-bg: #f8fafc;
+  --header-bg: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-purple: var(--brand-purple);
+  --color-page-bg: var(--page-bg);
+  --color-header-bg: var(--header-bg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -18,6 +26,10 @@
 .dark{
     --background: #0a0a0a;
     --foreground: #ededed;
+
+    --brand-purple: #8b5cf6;
+    --page-bg: #0f172a;
+    --header-bg: #0f172a;
 }
 
 

@@ -3,7 +3,7 @@
 import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
 import Link from "next/link";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import {
   User,
   Mail,
@@ -56,8 +56,6 @@ export default function RegisterPage() {
   return (
     // Centraliza o card descontando a altura do header (5rem/80px)
     <div className="flex justify-center items-center h-full bg-page-bg dark:bg-slate-900 font-sans py-12 px-4 transition-colors duration-200">
-      <Toaster position="top-right" />
-
       {/* Card */}
       <div className="w-full max-w-md bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-xl rounded-xl p-8 transition-colors duration-200">
         <div className="text-center mb-8">

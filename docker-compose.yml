@@ -1,0 +1,69 @@
+# Sobe todo o projeto: banco (Postgres) + backend (Spring) + frontend (Next.js).
+# Uso: docker compose up --build
+#
+# Acessos:
+#   Frontend : http://localhost:${FRONTEND_PORT:-3000}
+#   Backend  : http://localhost:${APP_PORT:-8080}
+
+services:
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    restart: always
+    env_file:
+      - ./back-end/BACK-END-API-WEB-LOJA/sistema-loja/.env
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spring-app:
+    build:
+      context: ./back-end/BACK-END-API-WEB-LOJA/sistema-loja
+      dockerfile: Dockerfile
+    container_name: sistema-loja-app
+    restart: always
+    env_file:
+      - ./back-end/BACK-END-API-WEB-LOJA/sistema-loja/.env
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # URL que o NAVEGADOR usa para chamar a API (embutida no build do cliente).
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+    container_name: sistema-loja-frontend
+    restart: always
+    environment:
+      # URL interna (server-side do Next) para falar com o backend na rede do compose.
+      API_BASE_URL: http://spring-app:8080
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-troque-este-segredo-em-producao}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - spring-app
+
+  jmeter:
+    image: ${JMETER_IMAGE:-justb4/jmeter:5.5}
+    profiles:
+      - performance
+    volumes:
+      - ./back-end/BACK-END-API-WEB-LOJA/sistema-loja/performance/jmeter:/jmeter
+    depends_on:
+      - spring-app
+    entrypoint: ["jmeter"]
+
+volumes:
+  pgdata:

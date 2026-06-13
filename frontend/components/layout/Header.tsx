@@ -14,10 +14,13 @@ import {
   Store,
   Menu,
   X,
-  Ticket, // Ícone para cupons
+  Ticket,
 } from "lucide-react";
-import ThemeToggle from "./ThemeToggle";
 import { signOut, useSession } from "next-auth/react";
+import ThemeToggle from "@/components/ThemeToggle";
+import { cn } from "@/lib/cn";
+import { ROLE_LABELS } from "@/lib/constants";
+import { getDisplayName } from "@/lib/session";
 
 export default function Header() {
   const { data: session, status } = useSession();
@@ -26,108 +29,60 @@ export default function Header() {
 
   const isLoading = status === "loading";
   const isAuthenticated = status === "authenticated";
-  const userRole = session?.user.role;
+  const userRole = session?.user?.role;
+  const userName = getDisplayName(session);
 
-  const userName = session?.user.email?.split("@")[0] || "Visitante";
+  const handleLogout = () => signOut({ callbackUrl: "/login" });
 
-  const handleLogout = async () => {
-    await signOut({
-      callbackUrl: "/login",
-    });
-  };
+  // Estado ativo por prefixo de rota (corrige a comparação que nunca acendia).
+  const isActive = (path: string) => pathname.startsWith(path);
 
-  const isActive = (path: string) => pathname === path;
+  const navItems = (() => {
+    if (!isAuthenticated) return [];
+    if (userRole === "ROLE_ADMIN")
+      return [
+        { href: "/admin/cupons", label: "Gerenciar Cupons", icon: Ticket },
+        { href: "/admin/usuarios", label: "Usuários", icon: UserCircle2 },
+      ];
+    if (userRole === "ROLE_FORNECEDOR")
+      return [
+        { href: "/fornecedor", label: "Painel", icon: LayoutDashboard },
+        { href: "/fornecedor/produtos", label: "Meus Produtos", icon: Store },
+        {
+          href: "/fornecedor/produtos/novo",
+          label: "Novo Produto",
+          icon: PlusCircle,
+        },
+      ];
+    if (userRole === "ROLE_USUARIO")
+      return [
+        { href: "/usuario/produtos", label: "Loja", icon: Store },
+        { href: "/usuario/pedidos", label: "Meus Pedidos", icon: Package },
+        { href: "/usuario/carrinho", label: "Carrinho", icon: ShoppingCart },
+      ];
+    return [];
+  })();
 
-  const renderNavLinks = (mobile = false) => {
-    const baseClass = mobile
-      ? "flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors dark:text-gray-200 text-gray-800"
-      : "flex items-center space-x-1.5 hover:text-brand-purple transition-colors text-sm font-medium dark:text-gray-300 text-gray-700 dark:hover:text-white hover:text-black";
-
-    const activeClass = mobile
-      ? "bg-brand-purple/20 text-brand-purple font-semibold"
-      : "dark:text-white text-black font-semibold";
-
-    // --- ADICIONADO: Rotas de ADMIN ---
-    if (isAuthenticated && userRole === "ROLE_ADMIN") {
-      return (
-        <>
-          <Link
-            href="/admin/cupons"
-            className={`${baseClass} ${isActive("/cupons") ? activeClass : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <Ticket className="w-5 h-5" />
-            <span>Gerenciar Cupons</span>
-          </Link>
-          {/* Pode adicionar outros links de admin aqui */}
-        </>
-      );
-    }
-
-    // Links de Fornecedor
-    if (isAuthenticated && userRole === "ROLE_FORNECEDOR") {
-      return (
-        <>
-          <Link
-            href="/fornecedor"
-            className={`${baseClass} ${isActive("/fornecedor") ? activeClass : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Painel</span>
-          </Link>
-          <Link
-            href="/fornecedor/produtos"
-            className={`${baseClass} ${isActive("/produtos") ? activeClass : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <Store className="w-5 h-5" />
-            <span>Meus Produtos</span>
-          </Link>
-          <Link
-            href="/fornecedor/produtos/novo"
-            className={`${baseClass} text-green-400 hover:text-green-300`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <PlusCircle className="w-5 h-5" />
-            <span>Novo Produto</span>
-          </Link>
-        </>
-      );
-    }
-
-    // Links de Usuário Comum
-    if (isAuthenticated && userRole === "ROLE_USUARIO") {
-      return (
-        <>
-          <Link
-            href="/usuario/produtos"
-            className={`${baseClass} ${isActive("/produtos") ? activeClass : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <Store className="w-5 h-5" />
-            <span>Loja</span>
-          </Link>
-          <Link
-            href="/usuario/pedidos"
-            className={`${baseClass} ${isActive("/pedidos") ? activeClass : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <Package className="w-5 h-5" />
-            <span>Meus Pedidos</span>
-          </Link>
-          <Link
-            href="/usuario/carrinho"
-            className={`${baseClass} ${isActive("/carrinho") ? activeClass : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span>Carrinho</span>
-          </Link>
-        </>
-      );
-    }
-  };
+  const renderNavLinks = (mobile = false) =>
+    navItems.map(({ href, label, icon: Icon }) => (
+      <Link
+        key={href}
+        href={href}
+        onClick={() => mobile && setIsMobileMenuOpen(false)}
+        className={cn(
+          mobile
+            ? "flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors dark:text-gray-200 text-gray-800"
+            : "flex items-center space-x-1.5 hover:text-brand-purple transition-colors text-sm font-medium dark:text-gray-300 text-gray-700 dark:hover:text-white hover:text-black",
+          isActive(href) &&
+            (mobile
+              ? "bg-brand-purple/20 text-brand-purple font-semibold"
+              : "dark:text-white text-black font-semibold"),
+        )}
+      >
+        <Icon className="w-5 h-5" />
+        <span>{label}</span>
+      </Link>
+    ));
 
   return (
     <header className="bg-header-bg border-b border-white/5 shadow-lg sticky top-0 z-50 backdrop-blur-md bg-opacity-95 font-sans">
@@ -167,13 +122,9 @@ export default function Header() {
               <div className="flex items-center gap-4 pl-6 border-l border-white/10">
                 <div className="flex flex-col items-end mr-1">
                   <span className="text-xs text-brand-purple font-bold uppercase tracking-wider">
-                    {userRole === "ROLE_ADMIN"
-                      ? "Administrador"
-                      : userRole === "ROLE_FORNECEDOR"
-                        ? "Fornecedor"
-                        : "Cliente"}
+                    {userRole ? ROLE_LABELS[userRole] : ""}
                   </span>
-                  <span className="text-sm font-medium ">Olá, {userName}</span>
+                  <span className="text-sm font-medium">Olá, {userName}</span>
                 </div>
 
                 <button
@@ -225,7 +176,7 @@ export default function Header() {
               </div>
               <div>
                 <p className="text-white font-semibold">{userName}</p>
-                <p className="text-xs text-gray-400">email@example.com/</p>
+                <p className="text-xs text-gray-400">{session?.user?.email}</p>
               </div>
             </div>
           )}

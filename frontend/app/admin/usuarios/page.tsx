@@ -1,100 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
-import { Loader2, Users, Shield, User, Mail, AlertCircle } from "lucide-react";
-import { Role, User as UserType } from "@/types/types";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { Users, User, Mail, AlertCircle } from "lucide-react";
+import { useUsuarios } from "@/hooks/queries/useUsuarios";
+import { PageLoader } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { RoleBadge } from "@/components/ui/RoleBadge";
 
 export default function UsuariosPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [usuarios, setUsuarios] = useState<UserType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: usuarios = [], isLoading } = useUsuarios();
 
-  const formatRole = (role: Role) => {
-    switch (role) {
-      case "ROLE_ADMIN":
-        return (
-          <span className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 py-1 px-3 rounded-full text-xs font-bold flex items-center gap-1 w-fit">
-            <Shield size={12} /> ADMIN
-          </span>
-        );
-      case "ROLE_FORNECEDOR":
-        return (
-          <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 py-1 px-3 rounded-full text-xs font-bold w-fit">
-            FORNECEDOR
-          </span>
-        );
-      case "ROLE_USUARIO":
-      default:
-        return (
-          <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 py-1 px-3 rounded-full text-xs font-bold w-fit">
-            CLIENTE
-          </span>
-        );
-    }
-  };
-
-  // --- PROTEÇÃO DE ROTA ---
-  useEffect(() => {
-    if (status === "loading") return;
-    if (status === "unauthenticated" || session?.user?.role !== "ROLE_ADMIN") {
-      router.push("/");
-    } else {
-      const fetchUsuarios = async () => {
-        try {
-          // Assume que o backend tem um GET /api/users que lista todos
-          const res = await fetch(`${API_BASE_URL}/api/users`, {
-            headers: { Authorization: `Bearer ${session?.user.token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setUsuarios(data);
-          } else {
-            toast.error("Erro ao carregar lista de usuários.");
-          }
-        } catch (error) {
-          console.error("Erro ao buscar usuários:", error);
-          toast.error("Erro de conexão.");
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchUsuarios();
-    }
-  }, [status, session, router]);
-
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-page-bg dark:bg-slate-900 transition-colors duration-200">
-        <Loader2 className="w-10 h-10 animate-spin text-brand-purple dark:text-purple-400" />
-      </div>
-    );
-  }
-
-  if (session?.user?.role !== "ROLE_ADMIN") return null;
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="h-full bg-page-bg dark:bg-slate-900 font-sans p-8 transition-colors duration-200">
-      <Toaster position="top-right" />
       <div className="container mx-auto max-w-6xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Users className="w-8 h-8 text-brand-purple dark:text-purple-400" />
-            Gerenciar Usuários
-          </h1>
-        </div>
+        <PageHeader icon={Users} title="Gerenciar Usuários" />
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors duration-200">
+        <Card className="overflow-hidden">
           {usuarios.length === 0 ? (
-            <div className="p-12 text-center text-gray-500 dark:text-gray-400">
-              <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Nenhum usuário encontrado.</p>
-            </div>
+            <EmptyState icon={AlertCircle} title="Nenhum usuário encontrado." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -103,7 +29,6 @@ export default function UsuariosPage() {
                     <th className="px-6 py-4">Usuário</th>
                     <th className="px-6 py-4">Email</th>
                     <th className="px-6 py-4">Perfil</th>
-                    <th className="px-6 py-4 text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -128,15 +53,16 @@ export default function UsuariosPage() {
                           {usuario.email}
                         </div>
                       </td>
-                      <td className="px-6 py-4">{formatRole(usuario.role)}</td>
-                      <td className="px-6 py-4 flex justify-center gap-3"></td>
+                      <td className="px-6 py-4">
+                        <RoleBadge role={usuario.role} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

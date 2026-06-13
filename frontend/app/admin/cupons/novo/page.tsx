@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useEffect, SubmitEvent } from "react";
+import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
-import { Loader2, Ticket, Save, ArrowLeft } from "lucide-react";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import toast from "react-hot-toast";
+import { Ticket, Save, ArrowLeft } from "lucide-react";
+import { useCreateCupom } from "@/hooks/mutations/useCupomMutations";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { FormField, Input, Select } from "@/components/ui/fields";
 
 export default function CadastroCupom() {
-  const { data: session, status } = useSession();
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const createCupom = useCreateCupom();
   const [formData, setFormData] = useState({
     codigo: "",
     tipoDesconto: "",
@@ -21,64 +20,24 @@ export default function CadastroCupom() {
     dataValidade: "",
   });
 
-  // --- PROTEÇÃO DE ROTA ---
-  useEffect(() => {
-    if (status === "loading") return;
-    if (status === "unauthenticated" || session?.user?.role !== "ROLE_ADMIN") {
-      router.push("/"); // Manda para home se não for admin
-    }
-  }, [status, session, router]);
-
-  const handleSubmit = async (e: SubmitEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    // Validação simples
     if (!formData.tipoDesconto) {
       toast.error("Selecione o tipo de desconto.");
-      setIsSubmitting(false);
       return;
     }
-
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cupons`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.user.token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        toast.success("Cupom criado com sucesso!");
-        setTimeout(() => router.push("/admin/cupons"), 1500);
-      } else {
-        const erro = await res.json();
-        toast.error(JSON.stringify(erro));
-      }
-    } catch (error) {
-      toast.error("Erro de conexão.");
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
+      await createCupom.mutateAsync(formData);
+      toast.success("Cupom criado com sucesso!");
+      setTimeout(() => router.push("/admin/cupons"), 1200);
+    } catch {
+      toast.error("Erro ao criar cupom. Verifique os dados.");
     }
   };
 
-  if (status === "loading")
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-page-bg dark:bg-slate-900 transition-colors duration-200">
-        <Loader2 className="animate-spin text-brand-purple dark:text-purple-400 w-10 h-10" />
-      </div>
-    );
-
-  if (session?.user?.role !== "ROLE_ADMIN") return null;
-
   return (
     <div className="h-full bg-page-bg dark:bg-slate-900 font-sans py-12 px-4 flex justify-center items-start transition-colors duration-200">
-      <Toaster position="top-right" />
-
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8 border border-gray-100 dark:border-slate-700 transition-colors duration-200">
+      <Card className="w-full max-w-2xl shadow-lg p-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
             <Ticket className="w-6 h-6 text-brand-purple dark:text-purple-400" />
@@ -93,13 +52,8 @@ export default function CadastroCupom() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Código */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Código do Cupom
-            </label>
-            <input
-              type="text"
+          <FormField label="Código do Cupom">
+            <Input
               value={formData.codigo}
               onChange={(e) =>
                 setFormData({
@@ -108,37 +62,28 @@ export default function CadastroCupom() {
                 })
               }
               placeholder="Ex: NATAL15"
+              className="uppercase"
               required
-              className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-brand-purple outline-none uppercase bg-white dark:bg-slate-900 text-gray-900 dark:text-white dark:placeholder-gray-500 transition-colors"
             />
-          </div>
+          </FormField>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Tipo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Tipo de Desconto
-              </label>
-              <select
+            <FormField label="Tipo de Desconto">
+              <Select
                 value={formData.tipoDesconto}
                 onChange={(e) =>
                   setFormData({ ...formData, tipoDesconto: e.target.value })
                 }
                 required
-                className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-brand-purple outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white transition-colors"
               >
                 <option value="">Selecione...</option>
                 <option value="PERCENTAGEM">Porcentagem (%)</option>
                 <option value="FIXO">Valor Fixo (Kz)</option>
-              </select>
-            </div>
+              </Select>
+            </FormField>
 
-            {/* Valor */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Valor
-              </label>
-              <input
+            <FormField label="Valor">
+              <Input
                 type="number"
                 step="0.01"
                 value={formData.valorDesconto}
@@ -147,40 +92,32 @@ export default function CadastroCupom() {
                 }
                 required
                 placeholder="Ex: 15"
-                className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-brand-purple outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white dark:placeholder-gray-500 transition-colors"
               />
-            </div>
+            </FormField>
           </div>
 
-          {/* Validade */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Data de Validade
-            </label>
-            <input
+          <FormField label="Data de Validade">
+            <Input
               type="date"
               value={formData.dataValidade}
               onChange={(e) =>
                 setFormData({ ...formData, dataValidade: e.target.value })
               }
-              className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-brand-purple outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white scheme-light dark:scheme-dark transition-colors"
+              className="scheme-light dark:scheme-dark"
             />
-          </div>
+          </FormField>
 
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-brand-purple dark:text-white font-bold py-3 rounded-lg hover:bg-opacity-90 dark:hover:bg-purple-700 flex justify-center items-center gap-2 mt-4 transition-colors shadow-md dark:shadow-purple-900/20"
+            fullWidth
+            className="mt-4 py-3"
+            loading={createCupom.isPending}
           >
-            {isSubmitting ? (
-              <Loader2 className="animate-spin w-5 h-5" />
-            ) : (
-              <Save className="w-5 h-5" />
-            )}
+            <Save className="w-5 h-5" />
             Cadastrar Cupom
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

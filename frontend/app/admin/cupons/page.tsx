@@ -1,101 +1,60 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
-import { Loader2, Ticket, Plus, Trash2, Edit, CalendarOff } from "lucide-react";
-import { Coupon } from "@/types/types";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import toast from "react-hot-toast";
+import { Ticket, Plus, Trash2, Edit, CalendarOff } from "lucide-react";
+import { useCupons } from "@/hooks/queries/useCupons";
+import { useDeleteCupom } from "@/hooks/mutations/useCupomMutations";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { PageLoader } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
 
 export default function CuponsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [cupons, setCupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: cupons = [], isLoading } = useCupons();
+  const deleteCupom = useDeleteCupom();
+  const confirm = useConfirm();
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este cupom?")) return;
+    const ok = await confirm({
+      title: "Excluir cupom",
+      message: "Tem certeza que deseja excluir este cupom?",
+      danger: true,
+      confirmText: "Excluir",
+    });
+    if (!ok) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/cupons/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${session?.user.token}` },
-      });
-
-      if (res.ok) {
-        toast.success("Cupom excluído com sucesso!");
-        setCupons((prev) => prev.filter((c) => c.id !== id));
-      } else {
-        toast.error("Erro ao excluir cupom.");
-      }
+      await deleteCupom.mutateAsync(id);
+      toast.success("Cupom excluído com sucesso!");
     } catch {
-      toast.error("Erro de conexão.");
+      toast.error("Erro ao excluir cupom.");
     }
   };
 
-  // --- PROTEÇÃO DE ROTA ---
-  useEffect(() => {
-    if (status === "loading") return;
-    if (status === "unauthenticated" || session?.user?.role !== "ROLE_ADMIN") {
-      router.push("/"); // Manda para home se não for admin
-    }
-    const fetchCupons = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/cupons`, {
-          headers: { Authorization: `Bearer ${session?.user.token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setCupons(data);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar cupons:", error);
-        toast.error("Erro ao carregar cupons.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCupons();
-  }, [status, session, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-page-bg dark:bg-slate-900 transition-colors duration-200">
-        <Loader2 className="w-10 h-10 animate-spin text-brand-purple dark:text-purple-400" />
-      </div>
-    );
-  }
-
-  // Se não for admin, não renderiza nada enquanto redireciona
-  if (session?.user?.role !== "ROLE_ADMIN") return null;
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="h-full bg-page-bg dark:bg-slate-900 font-sans p-8 transition-colors duration-200">
-      <Toaster position="top-right" />
       <div className="container mx-auto max-w-5xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Ticket className="w-8 h-8 text-brand-purple dark:text-purple-400" />
-            Gerenciar Cupons
-          </h1>
-          <Link
-            href="/admin/cupons/novo"
-            className="flex items-center gap-2 bg-brand-purple dark:text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition shadow-lg dark:shadow-purple-900/20"
-          >
-            <Plus className="w-5 h-5" />
-            Novo Cupom
-          </Link>
-        </div>
+        <PageHeader
+          icon={Ticket}
+          title="Gerenciar Cupons"
+          actions={
+            <Link href="/admin/cupons/novo">
+              <Button>
+                <Plus className="w-5 h-5" />
+                Novo Cupom
+              </Button>
+            </Link>
+          }
+        />
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors duration-200">
+        <Card className="overflow-hidden">
           {cupons.length === 0 ? (
-            <div className="p-12 text-center text-gray-500 dark:text-gray-400">
-              <CalendarOff className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Nenhum cupom cadastrado.</p>
-            </div>
+            <EmptyState icon={CalendarOff} title="Nenhum cupom cadastrado." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -144,7 +103,7 @@ export default function CuponsPage() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

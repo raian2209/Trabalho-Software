@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Gera um servidor auto-contido (.next/standalone) para imagem Docker enxuta.
+  output: "standalone",
   images: {
     remotePatterns: [
       new URL("https:///**"),

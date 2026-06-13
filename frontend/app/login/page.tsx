@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { User, Lock, LogIn, Loader2 } from "lucide-react";
 import { getSession, signIn } from "next-auth/react";
 
@@ -68,8 +68,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex justify-center items-center h-full bg-page-bg dark:bg-slate-900 font-sans py-12 px-4 transition-colors duration-200">
-      <Toaster position="top-right" />
-
       {/* Card com adaptação dark mode */}
       <div className="w-full max-w-md bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-xl rounded-xl p-8 transition-colors duration-200">
         <div className="text-center mb-8">

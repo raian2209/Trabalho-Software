@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useCart } from "@/context/CartContext";
-import { useSession } from "next-auth/react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import {
   Trash2,
   Plus,
@@ -13,73 +12,36 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { useVerificarCupom } from "@/hooks/mutations/useCupomMutations";
+import { useCreatePedido } from "@/hooks/mutations/usePedidoMutations";
+import { formatCurrency } from "@/lib/format";
 import { Coupon } from "@/types/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
 export default function CarrinhoPage() {
-  const {
-    cartItems,
-    removeFromCart,
-    updateItemQuantity,
-    clearCart,
-    cartTotal,
-  } = useCart()!;
-  const { data: session, status } = useSession();
+  const { cartItems, removeFromCart, updateItemQuantity, clearCart, cartTotal } =
+    useCart()!;
   const router = useRouter();
+  const verificarCupom = useVerificarCupom();
+  const criarPedido = useCreatePedido();
 
   const [codigoCupom, setCodigoCupom] = useState("");
   const [cupomAplicado, setCupomAplicado] = useState<Coupon | null>(null);
   const [erroCupom, setErroCupom] = useState("");
-  const [loadingCupom, setLoadingCupom] = useState(false);
 
-  useEffect(() => {
-    if (status === "loading") return;
-    if (
-      status === "unauthenticated" ||
-      session?.user?.role !== "ROLE_USUARIO"
-    ) {
-      router.push("/");
-    }
-  }, [status, session, router]);
-
-  const verificarCupom = async () => {
+  const aplicarCupom = async () => {
     if (!codigoCupom.trim()) return;
-
-    setLoadingCupom(true);
     setErroCupom("");
     setCupomAplicado(null);
-
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/cupons/codigo/${codigoCupom}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.user?.token}`,
-          },
-        },
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        // Verificação extra: valor do cupom deve ser positivo
-        if (data.ativo === false) {
-          setErroCupom("Este cupom não está mais ativo.");
-        } else if (data.valorDesconto < 0) {
-          setErroCupom("Cupom inválido (valor negativo).");
-        } else {
-          setCupomAplicado(data);
-        }
+      const data = await verificarCupom.mutateAsync(codigoCupom);
+      if (data.valorDesconto < 0) {
+        setErroCupom("Cupom inválido (valor negativo).");
       } else {
-        setErroCupom("Cupom inválido ou não encontrado.");
+        setCupomAplicado(data);
       }
-    } catch (error) {
-      console.error("Erro ao validar cupom:", error);
-      setErroCupom("Erro ao conectar com o servidor.");
-    } finally {
-      setLoadingCupom(false);
+    } catch {
+      setErroCupom("Cupom inválido ou não encontrado.");
     }
   };
 
@@ -91,22 +53,13 @@ export default function CarrinhoPage() {
 
   const calcularDesconto = () => {
     if (!cupomAplicado) return 0;
-
-    const totalCompra = Number(cartTotal);
-    const valorCupom = Number(cupomAplicado.valorDesconto);
-    let descontoCalculado = 0;
-
-    if (cupomAplicado.tipoDesconto === "PERCENTAGEM") {
-      descontoCalculado = (totalCompra * valorCupom) / 100;
-    } else if (cupomAplicado.tipoDesconto === "FIXO") {
-      descontoCalculado = valorCupom;
-    }
-
-    if (descontoCalculado > totalCompra) {
-      return totalCompra;
-    }
-
-    return descontoCalculado;
+    const total = Number(cartTotal);
+    const valor = Number(cupomAplicado.valorDesconto);
+    const desconto =
+      cupomAplicado.tipoDesconto === "PERCENTAGEM"
+        ? (total * valor) / 100
+        : valor;
+    return Math.min(desconto, total);
   };
 
   const valorDesconto = calcularDesconto();
@@ -114,35 +67,20 @@ export default function CarrinhoPage() {
 
   const finalizarCompra = async () => {
     if (cartItems.length === 0) return;
-
-    const pedidoPayload = {
-      itens: cartItems.map((item) => ({
-        produtoId: item.id,
-        quantidade: item.quantity,
-      })),
-      codigoCupom: cupomAplicado ? cupomAplicado.codigo : null,
-      totalPago: totalFinal,
-    };
-
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pedidos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.user?.token}`,
-        },
-        body: JSON.stringify(pedidoPayload),
+      await criarPedido.mutateAsync({
+        itens: cartItems.map((item) => ({
+          produtoId: item.id,
+          quantidade: item.quantity,
+        })),
+        codigoCupom: cupomAplicado ? cupomAplicado.codigo : null,
+        totalPago: totalFinal,
       });
-
-      if (res.ok) {
-        alert("Pedido realizado com sucesso!");
-        clearCart();
-        router.push("/usuario/pedidos");
-      } else {
-        alert("Erro ao finalizar pedido.");
-      }
-    } catch (error) {
-      console.error("Erro:", error);
+      toast.success("Pedido realizado com sucesso!");
+      clearCart();
+      router.push("/usuario/pedidos");
+    } catch {
+      toast.error("Erro ao finalizar pedido.");
     }
   };
 
@@ -152,12 +90,6 @@ export default function CarrinhoPage() {
         <p className="text-xl font-medium">Seu carrinho está vazio.</p>
       </div>
     );
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-AO", {
-      style: "currency",
-      currency: "AOA",
-    }).format(value);
 
   return (
     <div className="container mx-auto p-4 h-full bg-page-bg dark:bg-slate-900 transition-colors duration-200">
@@ -247,11 +179,11 @@ export default function CarrinhoPage() {
 
               {!cupomAplicado ? (
                 <button
-                  onClick={verificarCupom}
-                  disabled={loadingCupom || !codigoCupom}
+                  onClick={aplicarCupom}
+                  disabled={verificarCupom.isPending || !codigoCupom}
                   className="bg-gray-800 dark:bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-600 disabled:opacity-50 transition flex items-center gap-2"
                 >
-                  {loadingCupom ? (
+                  {verificarCupom.isPending ? (
                     <Loader2 className="animate-spin" size={18} />
                   ) : (
                     "Aplicar"
@@ -310,9 +242,12 @@ export default function CarrinhoPage() {
 
             <button
               onClick={finalizarCompra}
-              disabled={cartItems.length === 0}
-              className="w-full mt-6 bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition font-semibold shadow-lg shadow-green-200 dark:shadow-green-900/20 disabled:opacity-50"
+              disabled={cartItems.length === 0 || criarPedido.isPending}
+              className="w-full mt-6 bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition font-semibold shadow-lg shadow-green-200 dark:shadow-green-900/20 disabled:opacity-50 flex items-center justify-center gap-2"
             >
+              {criarPedido.isPending && (
+                <Loader2 className="animate-spin" size={18} />
+              )}
               Finalizar Compra
             </button>
           </div>

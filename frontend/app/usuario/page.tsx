@@ -1,87 +1,35 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ShoppingBag,
   Package,
   User,
   ShoppingCart,
-  Loader2,
   LayoutDashboard,
   Clock,
   ArrowRight,
 } from "lucide-react";
-import { Order } from "@/types/types";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { usePedidos } from "@/hooks/queries/usePedidos";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { getDisplayName } from "@/lib/session";
+import { PageLoader } from "@/components/ui/Spinner";
+import { StatCard } from "@/components/ui/StatCard";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export default function UserDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [stats, setStats] = useState<{
-    totalPedidos: number;
-    ultimosPedidos: Order[];
-  }>({ totalPedidos: 0, ultimosPedidos: [] });
-  const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
+  const { data: pedidos = [], isLoading } = usePedidos();
 
-  // Formatador de Moeda
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("pt-AO", {
-      style: "currency",
-      currency: "AOA",
-    }).format(val || 0);
+  if (isLoading) return <PageLoader />;
 
-  // --- PROTEÇÃO DE ROTA ---
-  useEffect(() => {
-    if (status === "loading") return;
-    if (
-      status === "unauthenticated" ||
-      session?.user?.role !== "ROLE_USUARIO"
-    ) {
-      router.push("/"); // Redireciona se não for usuário
-    } else {
-      const fetchData = async () => {
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/pedidos`, {
-            headers: { Authorization: `Bearer ${session.user.token}` },
-          });
-          if (res.ok) {
-            const pedidos = await res.json();
-            if (Array.isArray(pedidos)) {
-              // Ordena por ID decrescente (ou data) para pegar os mais recentes
-              const sorted = [...pedidos].sort((a, b) => b.id - a.id);
-              setStats({
-                totalPedidos: pedidos.length,
-                ultimosPedidos: sorted.slice(0, 3), // Pegar os 3 últimos
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Erro ao buscar dados do dashboard", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchData();
-    }
-  }, [status, session, router]);
-
-  // Renderização de Carregamento
-  if (status === "loading" || loading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-page-bg dark:bg-slate-900 transition-colors duration-200">
-        <Loader2 className="animate-spin w-8 h-8 text-brand-purple dark:text-purple-400" />
-      </div>
-    );
-  }
+  const ultimosPedidos = pedidos.slice(0, 3);
+  const nome = getDisplayName(session);
 
   return (
     <div className="h-full bg-page-bg dark:bg-slate-900 font-sans transition-colors duration-200">
       <main className="container mx-auto px-4 py-8">
-        {/* Header de Boas-vindas */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
             <LayoutDashboard className="w-8 h-8 text-brand-purple dark:text-purple-400" />
@@ -90,73 +38,46 @@ export default function UserDashboard() {
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Olá,{" "}
             <span className="font-semibold text-brand-purple dark:text-purple-400">
-              {session?.user?.nome || session?.user?.email}
+              {nome}
             </span>
             ! Bem-vindo de volta.
           </p>
         </div>
 
-        {/* Cards de Atalho e Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {/* Card Loja (Ação Principal) */}
-          <Link
+          <StatCard
+            label="Fazer Compras"
+            value={<span className="text-xl">Ir para a Loja</span>}
+            icon={ShoppingBag}
             href="/usuario/produtos"
-            className="group bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 dark:border-slate-700 flex items-center justify-between cursor-pointer relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-1 h-full bg-brand-purple group-hover:w-2 transition-all"></div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wide mb-1">
-                Fazer Compras
-              </p>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                Ir para a Loja
-              </h3>
-            </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-full group-hover:bg-brand-purple group-hover:text-white dark:group-hover:bg-purple-600 transition-colors">
-              <ShoppingBag className="w-6 h-6 text-brand-purple dark:text-purple-400 group-hover:text-white" />
-            </div>
-          </Link>
-
-          {/* Card Total Pedidos (Estatística) */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wide mb-1">
-                Histórico
-              </p>
-              <h3 className="text-3xl font-bold text-gray-800 dark:text-white">
-                {stats.totalPedidos}{" "}
+          />
+          <StatCard
+            label="Histórico"
+            value={
+              <>
+                {pedidos.length}{" "}
                 <span className="text-sm font-normal text-gray-400 dark:text-gray-500">
                   pedidos
                 </span>
-              </h3>
-            </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-full">
-              <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-
-          {/* Card Carrinho (Atalho) */}
-          <Link
+              </>
+            }
+            icon={Package}
+            accent="bg-blue-500"
+            iconWrapper="bg-blue-50 dark:bg-blue-900/20"
+            iconClassName="text-blue-600 dark:text-blue-400"
+          />
+          <StatCard
+            label="Meu Carrinho"
+            value={<span className="text-xl">Ver Itens</span>}
+            icon={ShoppingCart}
             href="/usuario/carrinho"
-            className="group bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 dark:border-slate-700 flex items-center justify-between cursor-pointer relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-1 h-full bg-yellow-400 group-hover:w-2 transition-all"></div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wide mb-1">
-                Meu Carrinho
-              </p>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                Ver Itens
-              </h3>
-            </div>
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-full group-hover:bg-yellow-400 group-hover:text-white dark:group-hover:bg-yellow-500 transition-colors">
-              <ShoppingCart className="w-6 h-6 text-yellow-600 dark:text-yellow-400 group-hover:text-white" />
-            </div>
-          </Link>
+            accent="bg-yellow-400"
+            iconWrapper="bg-yellow-50 dark:bg-yellow-900/20"
+            iconClassName="text-yellow-600 dark:text-yellow-400"
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Seção de Pedidos Recentes */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
@@ -173,9 +94,9 @@ export default function UserDashboard() {
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors duration-200">
-              {stats.ultimosPedidos.length > 0 ? (
+              {ultimosPedidos.length > 0 ? (
                 <div className="divide-y divide-gray-100 dark:divide-slate-700">
-                  {stats.ultimosPedidos.map((pedido) => (
+                  {ultimosPedidos.map((pedido) => (
                     <div
                       key={pedido.id}
                       className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition"
@@ -189,26 +110,13 @@ export default function UserDashboard() {
                             Pedido #{pedido.id}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {pedido.dataPedido ||
-                              pedido.data ||
-                              "Data indisponível"}
+                            {formatDate(pedido.dataPedido || pedido.data)}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                            (pedido.status || "").toUpperCase() === "ENTREGUE"
-                              ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
-                              : (pedido.status || "").toUpperCase() ===
-                                  "CANCELADO"
-                                ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
-                                : "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800"
-                          }`}
-                        >
-                          {pedido.status || "PENDENTE"}
-                        </span>
+                        <StatusBadge status={pedido.status} />
                         <p className="font-bold text-gray-800 dark:text-white min-w-22.5 text-right">
                           {formatCurrency(pedido.total)}
                         </p>
@@ -236,7 +144,6 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          {/* Resumo do Perfil */}
           <div className="space-y-6">
             <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
               <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
@@ -245,11 +152,11 @@ export default function UserDashboard() {
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6 transition-colors duration-200">
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="h-20 w-20 bg-linear-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 rounded-full flex items-center justify-center text-brand-purple dark:text-purple-300 font-bold text-3xl border-4 border-white dark:border-slate-700 shadow-sm mb-3">
-                  {session?.user?.nome?.[0]?.toUpperCase() || "U"}
+                  {nome[0]?.toUpperCase() || "U"}
                 </div>
                 <div>
                   <p className="font-bold text-gray-800 dark:text-white text-lg">
-                    {session?.user?.nome}
+                    {nome}
                   </p>
                   <p className="text-gray-500 dark:text-gray-400 text-sm break-all">
                     {session?.user?.email}
