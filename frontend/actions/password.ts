@@ -11,7 +11,8 @@ export async function forgotPasswordAction(email: string) {
     });
 
     if (!res.ok) {
-      return { error: "Não foi possível processar a solicitação." };
+      const data = await res.json().catch(() => null);
+      return { error: data?.erro || "Não foi possível processar a solicitação." };
     }
     return { success: true };
   } catch (error) {

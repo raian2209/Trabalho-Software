@@ -42,8 +42,8 @@ export default function ForgotPasswordPage() {
               Verifique seu e-mail
             </h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-              Se o e-mail estiver cadastrado, enviamos um link para você
-              redefinir sua senha. O link expira em 30 minutos.
+              Enviamos um link para o seu e-mail para você redefinir sua senha.
+              O link expira em 30 minutos.
             </p>
             <Link
               href="/login"

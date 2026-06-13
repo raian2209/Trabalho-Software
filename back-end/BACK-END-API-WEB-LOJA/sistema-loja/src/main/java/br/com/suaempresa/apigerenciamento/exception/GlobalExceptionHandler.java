@@ -58,6 +58,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(erros, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(EmailNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleEmailNotFoundException(EmailNotFoundException ex) {
+        Map<String, String> erros = new HashMap<>();
+        erros.put("erro", ex.getMessage());
+        return new ResponseEntity<>(erros, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<Map<String, String>> handleInvalidTokenException(InvalidTokenException ex) {
         Map<String, String> erros = new HashMap<>();

@@ -50,6 +50,9 @@ services:
       API_BASE_URL: http://spring-app:8080
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-troque-este-segredo-em-producao}
+      # Chave fixa para Server Actions: mantém os IDs estáveis entre rebuilds,
+      # evitando o erro "Failed to find Server Action" após um novo build.
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-17gISDXXa+myEyUiKXE7E0QsaZCac45qKOAaxzFXJXg=}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
