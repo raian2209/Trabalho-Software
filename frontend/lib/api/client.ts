@@ -44,10 +44,16 @@ export async function apiFetch<T>(
     throw new ApiError(res.status, text || `Erro ${res.status}`, text);
   }
 
-  // Endpoints como DELETE/cancelar podem responder sem corpo JSON.
+  // Endpoints como DELETE/cancelar podem responder sem corpo (204) ou com corpo
+  // vazio mesmo declarando JSON. Lemos como texto e só parseamos se houver conteúdo,
+  // evitando erro de "Unexpected end of JSON input".
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  if (!text) return undefined as T;
+
   const contentType = res.headers.get("content-type");
   if (contentType?.includes("application/json")) {
-    return (await res.json()) as T;
+    return JSON.parse(text) as T;
   }
   return undefined as T;
 }

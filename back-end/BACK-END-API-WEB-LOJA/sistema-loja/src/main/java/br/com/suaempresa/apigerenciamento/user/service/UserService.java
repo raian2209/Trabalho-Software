@@ -3,6 +3,8 @@ package br.com.suaempresa.apigerenciamento.user.service;
 import br.com.suaempresa.apigerenciamento.exception.EmailAlreadyExistsException;
 import br.com.suaempresa.apigerenciamento.user.dto.UserRegistrationDTO;
 import br.com.suaempresa.apigerenciamento.user.dto.UserResponseDTO;
+import br.com.suaempresa.apigerenciamento.user.dto.UserUpdateDTO;
+import org.springframework.util.StringUtils;
 import br.com.suaempresa.apigerenciamento.user.model.Role;
 import br.com.suaempresa.apigerenciamento.user.model.User;
 import br.com.suaempresa.apigerenciamento.user.repository.UserRepository;
@@ -112,17 +114,24 @@ public class UserService  implements UserDetailsService {
 
 
     @Transactional
-    public UserResponseDTO updateUsuario(UserRegistrationDTO usuario){
-        User usuarioSecao = userRepository.findByEmail(usuario.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado com o e-mail: " + usuario.getEmail()));
+    public UserResponseDTO updateUsuario(UserUpdateDTO dados, User currentUser) {
+        // Atualiza sempre o usuário AUTENTICADO (não o e-mail enviado no corpo),
+        // assim funciona mesmo quando o próprio e-mail é alterado.
+        User usuario = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Usuário não encontrado com o id: " + currentUser.getId()));
 
-        usuarioSecao.setEmail(usuario.getEmail());
-        usuarioSecao.setSenha(passwordEncoder.encode(usuario.getSenha()));
-        usuarioSecao.setNome(usuario.getNome());
+        usuario.setNome(dados.getNome());
+        usuario.setEmail(dados.getEmail());
 
-        userRepository.save(usuarioSecao);
+        // Só troca a senha quando uma nova é informada; em branco mantém a atual.
+        if (StringUtils.hasText(dados.getSenha())) {
+            usuario.setSenha(passwordEncoder.encode(dados.getSenha()));
+        }
 
-        return this.mapToResponseDTO(usuarioSecao);
+        userRepository.save(usuario);
+
+        return this.mapToResponseDTO(usuario);
     }
 
     @Transactional

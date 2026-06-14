@@ -1,8 +1,8 @@
 package br.com.suaempresa.apigerenciamento.user.controller;
 
-import br.com.suaempresa.apigerenciamento.order.dto.PedidoRequestDTO;
 import br.com.suaempresa.apigerenciamento.user.dto.UserRegistrationDTO;
 import br.com.suaempresa.apigerenciamento.user.dto.UserResponseDTO;
+import br.com.suaempresa.apigerenciamento.user.dto.UserUpdateDTO;
 import br.com.suaempresa.apigerenciamento.user.model.User;
 import br.com.suaempresa.apigerenciamento.user.service.UserService;
 import jakarta.validation.Valid;
@@ -53,10 +53,10 @@ public class UserController {
 
     @PutMapping
     @PreAuthorize("hasRole('USUARIO')")
-    public ResponseEntity<UserResponseDTO> updateUser( @Valid @RequestBody UserRegistrationDTO userDTO,
-                                                       @AuthenticationPrincipal User currentUser) {
-        UserResponseDTO responseDTO = userService.updateUsuario(userDTO);
-        return new ResponseEntity<>(responseDTO,HttpStatus.OK);
+    public ResponseEntity<UserResponseDTO> updateUser(@Valid @RequestBody UserUpdateDTO userDTO,
+                                                      @AuthenticationPrincipal User currentUser) {
+        UserResponseDTO responseDTO = userService.updateUsuario(userDTO, currentUser);
+        return new ResponseEntity<>(responseDTO, HttpStatus.OK);
     }
 
 

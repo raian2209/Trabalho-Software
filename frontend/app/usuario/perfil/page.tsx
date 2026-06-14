@@ -25,7 +25,12 @@ export default function PerfilPage() {
   const handleUpdate = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await updatePerfil.mutateAsync(formData);
+      await updatePerfil.mutateAsync({
+        nome: formData.nome,
+        email: formData.email,
+        // Só envia a senha quando preenchida (em branco mantém a atual).
+        ...(formData.senha ? { senha: formData.senha } : {}),
+      });
       toast.success("Perfil atualizado! Faça login novamente.");
       setTimeout(() => signOut(), 2000);
     } catch {

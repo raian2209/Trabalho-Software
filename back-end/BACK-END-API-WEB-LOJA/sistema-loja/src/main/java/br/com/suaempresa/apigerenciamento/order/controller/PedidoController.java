@@ -57,13 +57,12 @@ public class PedidoController {
     }
 
     @PostMapping("/{id}")
-    //@PreAuthorize("hasRole('USUARIO')")
+    @PreAuthorize("hasRole('USUARIO')")
     public ResponseEntity<PedidoResponseDTO> cancelOrder(@PathVariable Long id,
                                                          @AuthenticationPrincipal User currentUser){
         PedidoResponseDTO pedidoResponseDTO = pedidoService.cancelOrder(id, currentUser);
-
-        return new ResponseEntity<>(pedidoResponseDTO, HttpStatus.NO_CONTENT);
-
+        // 200 OK com o pedido atualizado (não 204, que não pode ter corpo).
+        return ResponseEntity.ok(pedidoResponseDTO);
     }
 
     @GetMapping("/vendas")

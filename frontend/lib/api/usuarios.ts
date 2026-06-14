@@ -4,7 +4,8 @@ import { apiFetch } from "./client";
 export type PerfilPayload = {
   nome: string;
   email: string;
-  senha: string;
+  // Opcional: omitido/em branco mantém a senha atual.
+  senha?: string;
 };
 
 export const usuariosApi = {

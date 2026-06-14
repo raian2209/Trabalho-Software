@@ -50,6 +50,7 @@ const handler = NextAuth({
 
           return {
             id: decoded.sub,
+            nome: data.nome,
             email: decoded.email,
             role: decoded.role,
             token: data.token,
@@ -73,9 +74,10 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.nome = user.nome;
         token.email = user.email;
         token.role = user.role;
-        token.token = user.token; // nome correto
+        token.token = user.token;
       }
       return token;
     },
@@ -85,6 +87,7 @@ const handler = NextAuth({
      */
     async session({ session, token }) {
       session.user.id = token.id;
+      session.user.nome = token.nome;
       session.user.email = token.email;
       session.user.role = token.role;
 
